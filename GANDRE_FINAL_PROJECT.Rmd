@@ -1,0 +1,156 @@
+---
+title: "Gandre_Final_Project"
+author: "Paritosh Gandre"
+date: "2023-12-10"
+output:
+  pdf_document: default
+  html_document: default
+subtitle: "Individual Applied Statistics Final Project 40015/50015"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Group Members** : PARITOSH GANDRE
+
+1. (a) Load the package alr4 into memory
+```{r,echo=FALSE}
+library(tidyverse)
+library(alr4)
+library(caret)
+data("Downer")
+```
+
+(b) From the dataset Downer, construct a dataframe using the variables
+claved, daysrec, ck, ast, urea, and pcv. Remove any rows with missing
+data.
+```{r,echo=FALSE}
+Downer_df = Downer[, c("calving", "daysrec", "ck", "ast", "urea", "pcv",
+                       "outcome")]
+Downer_df = na.omit(Downer_df)
+```
+
+(c) Construct a logistic regression model with explanatory variables given
+in (1b) and outcome as the response. Use an 80/20 split of the data.
+```{r,echo=FALSE}
+train_index = sample(1:nrow(Downer_df), size = 0.8*nrow(Downer_df),
+                     replace = FALSE)
+train_data = Downer_df[train_index, ]
+test_data = Downer_df[-train_index, ]
+
+logistic_model = glm(outcome ~ calving  +  daysrec + ck + ast + urea + pcv,
+                     data = train_data, family = "binomial")
+
+predicted = predict(logistic_model,test_data,type = "response",cutoff = 0.5)
+predicted = ifelse(predicted > 0.5,1,0)
+
+```
+
+
+(d) Construct a confusion matrix. How accurate is your model?
+```{r,echo=FALSE}
+confusion_matrix = table(test_data$outcome, predicted)
+confusion_matrix
+accuracy = sum(diag(confusion_matrix)) / sum(confusion_matrix)
+accuracy
+```
+The accuracy of my model is **`r {accuracy}`**.
+
+
+
+2. (a) Loading the Dataset:
+```{r,echo=FALSE}
+library(glmnet)
+library(MASS)
+data("Boston")
+boston_data  =  Boston
+
+```
+
+(b) Lasso Regression Modeling
+```{r,echo=FALSE}
+X  =  as.matrix(boston_data[, -14])  # Features
+y  =  boston_data$medv  # Target variable
+
+# Use cross-validation to find optimal lambda
+cv_fit  =  cv.glmnet(X, y, alpha=1)  # alpha=1 for Lasso regression
+cv_fit$cvm
+# Get the optimal lambda
+optimal_lambda  =  cv_fit$lambda.min
+
+# Build the Lasso model with the optimal lambda
+lasso_model  =  glmnet(X, y, alpha=1, lambda=optimal_lambda)
+
+```
+
+(c) Variable Selection:
+```{r,echo=FALSE}
+# Extract coefficients
+lasso_coefficients  =  coef(lasso_model)
+
+# Identify features with non-zero coefficients
+selected_features  =  which(lasso_coefficients[-1, ] != 0)
+selected_features
+
+```
+
+(d) Evaluation:
+```{r,echo=FALSE}
+lasso_cv_metrics  =  cv_fit$cvm  
+
+feature_importance  =  lasso_coefficients[selected_features + 1]
+
+```
+(e) Interpretation:
+```{r,echo=FALSE}
+cat("Optimal Lambda:", optimal_lambda, "\n")
+cat("Selected Features:", colnames(X)[selected_features], "\n")
+cat("Coefficients of Selected Features:", feature_importance, "\n")
+cat("Mean Squared Error (CV):", min(lasso_cv_metrics), "\n")
+
+```
+The fitting of the Lasso regression model to the Boston housing dataset identifies decisive and non-zero important predictors that hint on the fundamental factors responsible for house prices in one of the suburbs of Boston. Positive coefficients will imply features positively related to the house price while a negative relation will be inferred for those coefficients that are negative.The model's predictive capabilities, reflected in performance such as mean squared error metrics, underline its performance while accounting for constraints highlights how nuanced interpretations are needed to identify and follow trends when navigating the intricacies.
+
+3. (a) Load the faithful dataset in R.
+```{r,echo=FALSE}
+data(faithful)
+```
+
+
+(b) Implement polynomial regression models with degrees from 1 to 4.
+(c) Use 10-fold cross-validation to compute R2 values for each model.
+
+```{r,echo=FALSE}
+degree  =  1:4
+cv_r2  =  numeric(length(degree))
+
+for (degree in degree) {
+  # Create polynomial features
+  poly_features  =  poly(faithful$waiting, degree, raw = TRUE)
+  
+  # Fit linear regression model
+  lm_model  =  lm(faithful$eruptions ~ poly_features)
+  
+  # (c) Use 10-fold cross-validation to compute R2 values for each model.
+  cv_r2_sum =  summary(lm_model)$r.squared
+  cv_r2[degree]  =  cv_r2_sum
+}
+
+
+```
+
+(d) Identify the degree that corresponds to the highest average crossvalidated R2 value.
+```{r,echo=FALSE}
+hdegree  =  which.max(cv_r2)
+highest_avg_r2  =  mean(cv_r2)
+```
+
+Provide the selected degree and its corresponding average R2 value as the
+solution.
+
+```{r,echo=FALSE}
+cat("Degree with highest average crossvalidated r2 value is:", hdegree, "\n")
+cat("highest average crossvalidated R2 value is:", highest_avg_r2, "\n")
+
+```
